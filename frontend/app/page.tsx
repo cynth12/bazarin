@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface Producto {
   id: number
@@ -13,18 +13,21 @@ interface Producto {
   tag?: string
 }
 
-const productos: Producto[] = [
-  { id: 1, nombre: "Salsa roja de árbol", descripcion: "Chipotles y chiles de árbol tostados", precio: 89, emoji: "🌶️", color: "#FFF0E6", picante: 5, tag: "Popular" },
-  { id: 2, nombre: "Salsa verde tomatillo", descripcion: "Tomatillo fresco con jalapeño y cilantro", precio: 75, emoji: "🥬", color: "#F0FAF0", picante: 3, tag: "Nuevo" },
-  { id: 3, nombre: "Salsa mango habanero", descripcion: "Dulce tropical con golpe de habanero", precio: 95, emoji: "🥭", color: "#FFF8E6", picante: 4, tag: "Popular" },
-  { id: 4, nombre: "Salsa negra ahumada", descripcion: "Chiles mulato y ancho ahumados lento", precio: 110, emoji: "🔥", color: "#F5F0EB", picante: 4, tag: "" },
-  { id: 5, nombre: "Salsa de guayaba", descripcion: "Frutal y ligeramente picante", precio: 85, emoji: "🍐", color: "#FFF0F5", picante: 2, tag: "Nuevo" },
-  { id: 6, nombre: "Salsa macha de cacahuate", descripcion: "Aceite, cacahuate y chile seco", precio: 120, emoji: "🥜", color: "#F5EFE6", picante: 3, tag: "" },
-]
-
 export default function Home() {
+  const [productos, setProductos] = useState<Producto[]>([])
+  const [cargando, setCargando] = useState(true)
   const [carrito, setCarrito] = useState<{ [id: number]: number }>({})
   const [carritoAbierto, setCarritoAbierto] = useState(false)
+
+  // Aquí está la magia — le pregunta a tu API los productos
+  useEffect(() => {
+    fetch("http://localhost:4000/api/productos")
+      .then(res => res.json())
+      .then(data => {
+        setProductos(data.data)
+        setCargando(false)
+      })
+  }, [])
 
   function agregar(id: number) {
     setCarrito(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }))
@@ -42,6 +45,14 @@ export default function Home() {
   const totalItems = Object.values(carrito).reduce((a, b) => a + b, 0)
   const totalPesos = productos.reduce((total, p) => total + (carrito[p.id] || 0) * p.precio, 0)
   const productosEnCarrito = productos.filter(p => carrito[p.id] > 0)
+
+  // Pantalla de carga
+  if (cargando) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100vh", backgroundColor: "#FDF6EE" }}>
+      <span style={{ fontSize: 48 }}>🌶️</span>
+      <p style={{ color: "#2C1810", fontWeight: 700, fontSize: 18, marginTop: 16 }}>Cargando salsas...</p>
+    </div>
+  )
 
   return (
     <main style={{ minHeight: "100vh", backgroundColor: "#FDF6EE", fontFamily: "system-ui, sans-serif" }}>
@@ -107,7 +118,7 @@ export default function Home() {
         </p>
       </div>
 
-      {/* Productos */}
+      {/* Productos — ahora vienen de la API! */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "0 16px 120px" }}>
         {productos.map(producto => (
           <div key={producto.id} style={{
@@ -116,9 +127,8 @@ export default function Home() {
             border: "1px solid #F0DFC8",
             overflow: "hidden"
           }}>
-            {/* Imagen */}
             <div style={{
-              backgroundColor: producto.color,
+              backgroundColor: producto.color || "#FFF0E6",
               height: 120,
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 48, position: "relative"
@@ -134,7 +144,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Info */}
             <div style={{ padding: "12px" }}>
               <p style={{ fontWeight: 700, fontSize: 13, color: "#2C1810", margin: 0, lineHeight: 1.3 }}>
                 {producto.nombre}
@@ -153,7 +162,6 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Precio y botón */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
                 <span style={{ fontWeight: 800, fontSize: 16, color: "#2C1810" }}>${producto.precio}</span>
                 {carrito[producto.id] ? (
